@@ -1,0 +1,82 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import geopandas as gpd
+from shapely.geometry import Point
+
+# Load the dataset
+data = pd.read_csv(r"C:\Users\bless\Downloads\archive (2)\US_Accidents_Dec20_Updated.csv")
+
+# Preprocess the data
+data['Start_Time'] = pd.to_datetime(data['Start_Time'])
+data['Hour'] = data['Start_Time'].dt.hour
+data['Day_of_Week'] = data['Start_Time'].dt.day_name()
+data['Month'] = data['Start_Time'].dt.month_name()
+
+# Handle missing values
+data = data.fillna({'Weather_Condition': 'Unknown', 'Wind_Speed(mph)': 0, 'Temperature(F)': 0})
+
+# Analyze patterns
+
+# Accident count by weather condition
+plt.figure(figsize=(12, 6))
+sns.countplot(x='Weather_Condition', data=data, palette='plasma')
+plt.title('Accidents by Weather Condition')
+plt.xlabel('Weather Condition')
+plt.ylabel('Number of Accidents')
+plt.xticks(rotation=45)
+plt.show()
+
+# Accident count by wind speed (binned)
+data['Wind_Speed_Binned'] = pd.cut(data['Wind_Speed(mph)'], bins=[0, 10, 20, 30, 40, 50, 60], labels=['0-10', '11-20', '21-30', '31-40', '41-50', '51-60'])
+plt.figure(figsize=(12, 6))
+sns.countplot(x='Wind_Speed_Binned', data=data, palette='viridis')
+plt.title('Accidents by Wind Speed')
+plt.xlabel('Wind Speed (mph)')
+plt.ylabel('Number of Accidents')
+plt.show()
+
+# Accident count by temperature (binned)
+data['Temperature_Binned'] = pd.cut(data['Temperature(F)'], bins=[-50, 0, 32, 50, 70, 90, 110], labels=['<0', '0-32', '33-50', '51-70', '71-90', '>90'])
+plt.figure(figsize=(12, 6))
+sns.countplot(x='Temperature_Binned', data=data, palette='coolwarm')
+plt.title('Accidents by Temperature')
+plt.xlabel('Temperature (F)')
+plt.ylabel('Number of Accidents')
+plt.show()
+
+# Accident count by hour of the day
+plt.figure(figsize=(12, 6))
+sns.countplot(x='Hour', data=data, palette='cividis')
+plt.title('Accidents by Hour of the Day')
+plt.xlabel('Hour of Day')
+plt.ylabel('Number of Accidents')
+plt.show()
+
+# Accident count by day of the week
+plt.figure(figsize=(12, 6))
+sns.countplot(x='Day_of_Week', data=data, palette='cividis')
+plt.title('Accidents by Day of the Week')
+plt.xlabel('Day of Week')
+plt.ylabel('Number of Accidents')
+plt.xticks(rotation=45)
+plt.show()
+
+# Accident hotspots (if Latitude and Longitude are available)
+# Convert to GeoDataFrame
+geometry = [Point(xy) for xy in zip(data['Start_Lng'], data['Start_Lat'])]
+geo_data = gpd.GeoDataFrame(data, geometry=geometry)
+
+# Load a map (e.g., from Natural Earth)
+world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+
+# Plot hotspots on the map
+fig, ax = plt.subplots(figsize=(12, 10))
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("right", size="5%", pad=0.1)
+world.plot(ax=ax, color='lightgray')
+geo_data.plot(ax=ax, markersize=10, color='red', alpha=0.5, legend=True, cax=cax)
+plt.title('Accident Hotspots')
+plt.xlabel('Longitude')
+plt.ylabel('Latitude')
+plt.show()
